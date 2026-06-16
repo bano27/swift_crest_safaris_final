@@ -1,0 +1,175 @@
+// Swift Crest Safaris – Prisma Schema
+// Run: npx prisma migrate dev --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  name      String
+  role      Role      @default(CUSTOMER)
+  phone     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bookings  Booking[]
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+}
+
+model Destination {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  name        String
+  region      String
+  description String   @db.Text
+  heroImage   String
+  bestTime    String
+  duration    String
+  parkFeeAdult Float   @default(0)
+  parkFeeChild Float   @default(0)
+  createdAt   DateTime @default(now())
+  camps       Camp[]
+
+  @@map("destinations")
+}
+
+model Camp {
+  id            Int         @id @default(autoincrement())
+  slug          String      @unique
+  name          String
+  category      CampCategory
+  description   String      @db.Text
+  imageUrl      String
+  rating        Float       @default(4.0)
+  amenities     String      @db.Text  // JSON array
+  destinationId Int
+  destination   Destination @relation(fields: [destinationId], references: [id])
+  prices        CampPrice[]
+  bookings      Booking[]
+  createdAt     DateTime    @default(now())
+
+  @@map("camps")
+}
+
+enum CampCategory {
+  budget
+  mid_range
+  luxury
+}
+
+model CampPrice {
+  id            Int    @id @default(autoincrement())
+  campId        Int
+  camp          Camp   @relation(fields: [campId], references: [id])
+  season        Season
+  adultSharing  Float
+  adultSolo     Float
+  childSharing  Float
+  childSolo     Float
+  mealPlan      String
+
+  @@unique([campId, season])
+  @@map("camp_prices")
+}
+
+enum Season {
+  low
+  shoulder
+  high
+}
+
+model Booking {
+  id            Int           @id @default(autoincrement())
+  ref           String        @unique
+  userId        Int?
+  user          User?         @relation(fields: [userId], references: [id])
+  campId        Int
+  camp          Camp          @relation(fields: [campId], references: [id])
+  firstName     String
+  lastName      String
+  email         String
+  phone         String?
+  nationality   String?
+  adults        Int           @default(1)
+  children      Int           @default(0)
+  arrival       DateTime
+  departure     DateTime
+  nights        Int
+  season        Season
+  adultRateKES  Float
+  childRateKES  Float
+  totalKES      Float
+  totalUSD      Float
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus @default(PENDING)
+  keywords      String?       @db.Text  // JSON
+  notes         String?       @db.Text
+  status        BookingStatus @default(CONFIRMED)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("bookings")
+}
+
+enum PaymentMethod {
+  mpesa
+  card
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum BookingStatus {
+  CONFIRMED
+  PENDING
+  CANCELLED
+  COMPLETED
+}
+
+model Contact {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  phone     String?
+  subject   String?
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+  replied   Boolean  @default(false)
+
+  @@map("contacts")
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  title       String
+  description String   @db.Text
+  imageUrl    String
+  startDate   DateTime
+  endDate     DateTime
+  location    String
+  badge       String?
+  priceFrom   Float?
+  packageKey  String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@map("events")
+}
